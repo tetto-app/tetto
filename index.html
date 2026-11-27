@@ -354,6 +354,14 @@ var CHEV='<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor
 /* ---------- utilidades ---------- */
 function $(s){return document.querySelector(s)}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+/* fileiras de filtros que rolam para o lado: depois de redesenhar, centraliza o filtro escolhido para ele não ficar cortado */
+function chipsAtivo(root){
+  root.querySelectorAll('.chips.scroll').forEach(function(r){
+    var on=r.querySelector('.chip.on');if(!on||r.scrollWidth<=r.clientWidth)return;
+    var a=on.getBoundingClientRect(),b=r.getBoundingClientRect();
+    r.scrollLeft+=(a.left-b.left)-(r.clientWidth-a.width)/2;
+  });
+}
 function pad(n){return String(n).padStart(2,'0')}
 function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
 function todayISO(){return iso(new Date())}
@@ -974,7 +982,7 @@ function renderList(){
     var net=groups[d].reduce(function(x,l){return x+(l.tipo==='r'?l.valor:l.tipo==='d'?-l.valor:0)},0);
     h+='<div class="card"><div class="grp"><span>'+dLong(d)+'</span><b class="'+(net<0?'':'pos')+'">'+(net<0?'− ':net>0?'+ ':'')+money(Math.abs(net))+'</b></div>'+groups[d].map(lItem).join('')+'</div>';
   });
-  $('#view-list').innerHTML=h;
+  $('#view-list').innerHTML=h;chipsAtivo($('#view-list'));
 }
 $('#view-list').addEventListener('click',function(e){
   var b=e.target.closest('[data-xf]');if(b){xf=b.dataset.xf;renderList();return}
@@ -1406,7 +1414,7 @@ function renderBudget(){
     h+='<div class="seg">'+[['tetos','Tetos e regra'],['analise','Análise']].map(function(v){return'<button type="button" data-bv="'+v[0]+'" class="'+(bView===v[0]?'on':'')+'">'+v[1]+'</button>'}).join('')+'</div>';
     h+=bView==='tetos'?orcHTML()+'<button type="button" class="btn ghost" data-act="bedit">Editar categorias e tetos</button>':dashHTML();
   }
-  $('#view-budget').innerHTML=h;
+  $('#view-budget').innerHTML=h;chipsAtivo($('#view-budget'));
 }
 /* trava da regra no planejamento: se os tetos de Necessidades ou Desejos passam do limite, oferece ajustar este teto */
 function checarTetoRegra(c,s,campo){
