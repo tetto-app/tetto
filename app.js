@@ -336,9 +336,16 @@ function toast(m){var t=$('#toast');t.textContent=m;t.classList.add('on');clearT
 function cap1(s){return s.charAt(0).toUpperCase()+s.slice(1)}
 
 /* ---------- cabeçalho: mês e modo ---------- */
+/* título do topo diz o que está na tela (como no Mobills), já que a aba destacada embaixo mostra onde se está:
+   em Lançamentos e Orçamento ele acompanha o balão de filtro escolhido */
+function tituloAba(){
+  if(tab==='list')return{all:'Transações',d:'Despesas',r:'Receitas',t:'Transferências'}[xf]||'Transações';
+  if(tab==='budget'){if(bEdit)return'Editar categorias';if(bView==='analise')return'Análise';return{all:'Tetos e regra',r:'Receitas',n:'Necessidades',d:'Desejos',p:'Poupança'}[bGrp]||'Tetos e regra'}
+  return{home:'Tetto',cards:'Cartões',more:'Ajustes'}[tab];
+}
 function renderHeader(){
-  var T={home:'Tetto',list:'Lançamentos',cards:'Cartões',budget:'Orçamento',more:'Mais'},SUB={cards:'Faturas, limites e parcelas',more:'Regra, moeda e backup'};
-  $('#hTitle').textContent=T[tab];
+  var SUB={cards:'Faturas, limites e parcelas',more:'Regra, moeda e backup'};
+  $('#hTitle').textContent=tituloAba();
   var showM=tab==='home'||tab==='list'||tab==='budget'||(tab==='cards'&&!kEdit);
   $('#mnav').hidden=!showM;$('#hSub').hidden=showM;$('#hSub').textContent=SUB[tab]||'';
   var isCur=cur===ymNow();
@@ -643,7 +650,7 @@ function calHTML(){
   }
   return h+'</div>';
 }
-function renderList(){
+function renderList(){$('#hTitle').textContent=tituloAba();
   if(xDia&&xDia.slice(0,7)!==cur)xDia=null;
   var F=[['all','Tudo'],['d','Despesas'],['r','Receitas'],['t','Transferências']];
   if(xConta!=='all'&&!contaById(xConta))xConta='all';
@@ -1101,7 +1108,7 @@ function orcHTML(){
   if(bGrp==='r')return h;
   return h+'<div class="note" style="margin:10px 4px 0">Limite = parte da receita do mês pela regra. Planejado = soma dos tetos. Gasto inclui os pendentes do mês (parte clara da barra). Na Poupança, aplicações em investimentos também contam.</div>';
 }
-function renderBudget(){
+function renderBudget(){$('#hTitle').textContent=tituloAba();
   if(bView==='regra')bView='tetos';
   var h='';
   var one=bOne?catById(bOne):null;if(bOne&&!one)bOne=null;
