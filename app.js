@@ -1038,26 +1038,29 @@ function regraHTML(){
 /* Orçamento numa aba só, organizado pela regra: cada parte (limite, planejado, gasto) com as suas categorias;
    tocar numa categoria abre as subcategorias, mover de parte e editar */
 var bGrp='all';
-/* categorias de receita à vista no Orçamento (antes só apareciam dentro de "Editar categorias e tetos"):
-   quanto entrou em cada uma no mês, tocar abre a categoria para editar, e o botão cria uma nova */
+/* Receitas no mesmo formato das partes da regra (Necessidades, Desejos, Poupança):
+   cabeçalho com três números, barra, e cada categoria com barra e o que falta receber; tocar abre as subcategorias */
 function receitasCard(){
   var v={},vp={},sv={},svp={},tot=0,totP=0;
   S.lanc.forEach(function(l){if(l.tipo!=='r'||mesOrc(l)!==cur)return;if(isReal(l)){v[l.cat]=(v[l.cat]||0)+l.valor;sv[l.sub]=(sv[l.sub]||0)+l.valor;tot+=l.valor}else{vp[l.cat]=(vp[l.cat]||0)+l.valor;svp[l.sub]=(svp[l.sub]||0)+l.valor;totP+=l.valor}});
-  var h='<div class="card"><div class="ttl">Receitas · categorias</div>';
-  /* igual às partes da regra: tocar na categoria abre as subcategorias, com o botão de editar dentro */
-  S.cats.forEach(function(c){if(c.tipo!=='r')return;var open=!!openCats[c.id],r=v[c.id]||0,p=vp[c.id]||0;
-    h+='<div class="catrow'+(open?' open':'')+'"><button type="button" class="cathead" data-act="tgc" data-id="'+c.id+'" aria-expanded="'+open+'"><span class="ico" style="--cc:'+c.cor+'">'+esc(c.icon)+'</span><span class="t"><div class="n">'+esc(c.nome)+'</div><div class="s">'+(p?'+ '+money(p)+' a receber':c.subs.length+(c.subs.length===1?' subcategoria':' subcategorias'))+'</div></span>'+
-      '<span class="r"><div class="v sm'+(r?' pos':'')+'">'+money(r)+'</div><div class="s">recebido</div></span>'+CHEV+'</button>';
+  var prev=tot+totP,pT=prev>0?tot/prev*100:null;
+  var h='<div class="card gcard" style="--gc:#34d399"><div class="row sp"><span class="gt">💰 Receitas</span><span class="pill" style="margin:0">base da regra</span></div>'+
+    '<div class="grid3 gm"><div><div class="l">Previsto</div><div class="v sm">'+money(prev)+'</div></div>'+
+    '<div><div class="l">Recebido</div><div class="v sm">'+money(tot)+'</div></div>'+
+    '<div><div class="l">A receber</div><div class="v sm">'+money(totP)+'</div></div></div>'+
+    (prev>0?barP(bar2(pT,100-pT,'ok'),pT):'');
+  S.cats.forEach(function(c){if(c.tipo!=='r')return;var open=!!openCats[c.id],r=v[c.id]||0,p=vp[c.id]||0,t=r+p,pc=t>0?r/t*100:null;
+    h+='<div class="catrow'+(open?' open':'')+'"><button type="button" class="cathead" data-act="tgc" data-id="'+c.id+'" aria-expanded="'+open+'"><span class="ico" style="--cc:'+c.cor+'">'+esc(c.icon)+'</span><span class="t"><div class="n">'+esc(c.nome)+'</div><div class="s">'+money(r)+' de '+money(t)+'</div></span>'+
+      '<span class="r"><div class="v sm">'+(t>0?money(p>0?p:r):'—')+'</div><div class="s">'+(t>0?(p>0?'a receber':'recebido'):'sem lançamento')+'</div></span>'+CHEV+'</button>'+barP(bar2(pc||0,t>0?100-pc:0,'ok'),pc);
     if(open){
-      c.subs.forEach(function(sb){var a1=sv[sb.id]||0,p1=svp[sb.id]||0;
-        h+='<div class="subrow"><div class="row sp"><span class="n2">'+esc(sb.nome)+(sb.modo!=='teto'?'<span class="pill">recorrente</span>':'')+'</span><b class="'+(a1?'pos':'')+'">'+money(a1)+'</b></div>'+
-          (p1?'<div class="s">+ '+money(p1)+' a receber</div>':'')+'</div>'});
+      c.subs.forEach(function(sb){var a1=sv[sb.id]||0,p1=svp[sb.id]||0,t1=a1+p1,pc1=t1>0?a1/t1*100:0;
+        h+='<div class="subrow"><div class="row sp"><span class="n2">'+esc(sb.nome)+(sb.modo!=='teto'?'<span class="pill">recorrente</span>':'')+'</span><b>'+(t1>0?(p1>0?'faltam '+money(p1):'recebido'):'—')+'</b></div>'+bar2(pc1,t1>0?100-pc1:0,'ok')+
+          '<div class="s">'+money(a1)+' de '+money(t1)+'</div></div>'});
       h+='<button type="button" class="btn ghost sm" data-act="e1" data-id="'+c.id+'" style="margin-top:8px">✎ Editar '+esc(c.nome)+'</button>';
     }
     h+='</div>'});
-  h+='<div class="row sp s" style="margin-top:8px"><span>Recebido em '+esc(ymShort(cur))+'</span><b>'+money(tot)+'</b></div>'+(totP?'<div class="row sp s"><span>A receber</span><b>'+money(totP)+'</b></div>':'')+
-    '<div class="note">A receita do mês é a base da regra 50/30/20. Toque numa categoria para ver as subcategorias e editar (marcar como recorrente o salário, por exemplo).</div>'+
-    '<button type="button" class="btn newg" data-act="addcatr">+ Nova categoria de receita</button></div>';
+  h+='<button type="button" class="btn newg" data-act="addcatr" style="margin-top:10px">+ Nova categoria de receita</button></div>';
+  if(bGrp==='r')h+='<div class="note" style="margin:10px 4px 0">Previsto = recebido + a receber no mês (parte clara da barra). A receita do mês é a base da regra 50/30/20.</div>';
   return h;
 }
 function orcHTML(){
@@ -1117,7 +1120,7 @@ function renderBudget(){$('#hTitle').textContent=tituloAba();
     h+='<button type="button" class="btn primary" data-act="bedit" style="margin-top:8px">Concluir</button>';
     if(one.tipo==='r')h+='<div class="note" style="margin:14px 4px 0"><b>Categoria de receita.</b> Dê um nome e crie as subcategorias (ex.: Salário, 13º, Freelance). <b>Recorrente</b>: lançada sozinha todo mês como pendente, no dia e na conta escolhidos.</div>';
     else h+='<div class="note" style="margin:14px 4px 0">Tetos a partir de <b>'+esc(ymLabel(cur))+'</b>. <b>Teto</b>: quanto pode gastar no mês. <b>Recorrente</b>: lançado sozinho todo mês como pendente; para mudar o valor de um mês, edite o lançamento daquele mês.</div>';
-    if(one.tipo==='d')h+='<div class="sec">'+GICO[one.grupo||'d']+' '+GN[one.grupo||'d']+'</div>';
+    h+='<div class="sec">'+(one.tipo==='d'?GICO[one.grupo||'d']+' '+GN[one.grupo||'d']:'💰 Receitas')+'</div>';
     h+=catEditor(one,oi);
     h+='<button type="button" class="btn ghost" data-act="ball">Editar todas as categorias</button>';
     h+='<button type="button" class="btn primary" data-act="bedit">Concluir</button>';
@@ -1134,7 +1137,7 @@ function renderBudget(){$('#hTitle').textContent=tituloAba();
       S.cats.forEach(function(c,ci){if(c.tipo==='d'&&(c.grupo||'d')===g)h+=catEditor(c,ci)});
       h+='<button type="button" class="btn newg" data-act="addcat" data-t="d" data-g="'+g+'">+ Categoria em '+GN[g]+'</button>';
     });
-    h+='<div class="sec" id="recSec">💰 Receitas</div><div class="note" style="margin:0 4px 8px">Categorias usadas ao lançar uma receita pelo +.</div>';
+    h+='<div class="card gcard" id="recSec" style="--gc:#34d399;margin-top:18px"><div class="row sp"><span class="gt">💰 Receitas</span><span class="pill" style="margin:0">base da regra</span></div><div class="s">Categorias usadas ao lançar uma receita pelo +. Marque Recorrente no que entra todo mês (salário, por exemplo).</div></div>';
     S.cats.forEach(function(c,ci){if(c.tipo==='r')h+=catEditor(c,ci)});
     h+='<button type="button" class="btn newg" data-act="addcat" data-t="r">+ Nova categoria de receita</button>';
     h+='<button type="button" class="btn primary" data-act="bedit">Concluir edição</button>';
