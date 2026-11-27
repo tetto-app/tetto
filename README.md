@@ -1,6 +1,8 @@
+<p align="center"><img src="icon-512.png" width="120" alt="Logo do Tetto: a letra T com uma barra de progresso no traço de cima"></p>
+
 # Tetto
 
-Organizador financeiro pessoal com **teto de gastos por categoria e subcategoria**. A cada lançamento, o app mostra quanto você já gastou e quanto ainda pode gastar no mês e no dia, e acompanha a regra 50/30/20 sobre a sua receita.
+Organizador financeiro pessoal com **teto de gastos por categoria e subcategoria**. A cada lançamento, o app mostra quanto você já gastou e quanto ainda pode gastar no mês, e acompanha a regra 50/30/20 sobre a sua receita.
 
 Feito para uso no celular, em tema escuro e **sem internet** depois de instalado.
 
