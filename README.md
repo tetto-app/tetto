@@ -62,12 +62,16 @@ Dica: faça um backup de vez em quando em **Mais → Exportar backup**.
 
 | Arquivo | Função |
 |---|---|
-| `index.html` | O app: interface, estilos e lógica |
+| `index.html` | Estrutura das telas |
+| `style.css` | Visual (cores, tamanhos, layout) |
+| `app.js` | Toda a lógica do app |
 | `manifest.webmanifest` | Permite instalar o app na tela inicial |
 | `sw.js` | Guarda o app no aparelho para funcionar sem internet |
 | `icon-192.png`, `icon-512.png` | Ícones |
 
-Para publicar uma versão nova, altere os arquivos e troque o nome do cache em `sw.js` (por exemplo, de `tetto-v1` para `tetto-v2`). O app se atualiza sozinho na próxima vez que for aberto com internet, sem perder os dados.
+Por segurança, a página só executa o código do arquivo `app.js`: script embutido no HTML é bloqueado pelo navegador, e o app não pode se conectar a nenhum servidor.
+
+Para publicar uma versão nova, altere os arquivos e troque o nome do cache em `sw.js` (por exemplo, de `tetto-v2` para `tetto-v3`). O app se atualiza sozinho na próxima vez que for aberto com internet, sem perder os dados.
 
 ## Licença
 

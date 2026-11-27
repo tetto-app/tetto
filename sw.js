@@ -1,8 +1,8 @@
 // Guarda o app no aparelho para abrir sem internet.
 // Ao publicar uma versão nova, troque o número em CACHE.
-var CACHE = 'tetto-v1';
+var CACHE = 'tetto-v2';
 var PREFIXO = 'tetto-'; // só mexe nos caches do próprio Tetto (outros apps no mesmo endereço ficam intactos)
-var FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
+var FILES = ['./', './index.html', './style.css', './app.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', function (e) {
   // cache: 'reload' busca direto no servidor, ignorando a cópia temporária do navegador,
