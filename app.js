@@ -316,6 +316,20 @@ function saldoConta(id){
   return v;
 }
 
+/* saldo das contas (não cartão, não investimento) no fim de um mês, acumulando tudo desde o começo.
+   comPrev=false: só o que já foi pago; comPrev=true: inclui também os pendentes e programados até o fim do mês */
+function saldoContasFim(ym,comPrev){
+  var ids={},fim=ym+'-31',v=0;
+  S.contas.forEach(function(c){if(c.tipo==='conta'||c.tipo==='carteira'){ids[c.id]=1;v+=c.saldoIni}});
+  S.lanc.forEach(function(l){
+    if(l.data>fim||(!comPrev&&!isReal(l)))return;
+    if((l.tipo==='r'||l.tipo==='a')&&ids[l.conta])v+=l.valor;
+    else if(l.tipo==='d'&&ids[l.conta])v-=l.valor;
+    else if(l.tipo==='t'){if(ids[l.conta])v-=l.valor;if(ids[l.para])v+=l.valor}
+  });
+  return v;
+}
+
 /* ---------- estado da interface ---------- */
 var cur=ymNow(),mode='mes',tab='home',openCats={},xf='all',xConta='all',openK={},dSc='total',dN=6,dSel=null,bView='tetos',bEdit=false,bOne=null,kEdit=false,mEdit=false,hEdit=false,openRec={},preRep=false;
 function toast(m){var t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(function(){t.classList.remove('on')},1700)}
@@ -403,7 +417,7 @@ function lItem(l){
     var rot=xs?(dif?xs.s.nome:xs.c.nome):'';if(rot&&rot.toLowerCase()===t1.replace(/ \(\d+\/\d+\)$/,'').toLowerCase())rot='';
     sub2=(rot?esc(rot)+' · ':'')+(naCartao?'<b class="vcard">'+esc(co.nome)+'</b>':esc(co?co.nome:'?'))+
       (mo2!==l.data.slice(0,7)?' · conta em '+MESES[+mo2.slice(5,7)-1].slice(0,3).toLowerCase():'');}
-  return'<button class="ex'+(isReal(l)?'':' pnd')+(naCartao?' excard':'')+'" data-id="'+l.id+'"><span class="ico" style="--cc:'+col+'">'+esc(ico)+(naCartao?'<span class="icard" aria-hidden="true">💳</span>':'')+'</span><span class="t"><div class="n">'+esc(t1)+pill+'</div><div class="s">'+sub2+'</div></span>'+amt+'</button>';
+  return'<button class="ex'+(isReal(l)?'':' pnd')+(naCartao?' excard':'')+'" data-id="'+l.id+'"><span class="ico" style="--cc:'+col+'">'+esc(ico)+(naCartao?'<span class="icard" aria-hidden="true">💳</span>':'')+'</span><span class="t"><div class="n nf"><span class="nt">'+esc(t1)+'</span>'+pill+'</div><div class="s">'+sub2+'</div></span>'+amt+'</button>';
 }
 function sortL(a,b){return a.data<b.data?1:a.data>b.data?-1:(b.ts||0)-(a.ts||0)}
 /* attr (opcional): a linha vira um botão tocável, com seta */
@@ -463,12 +477,19 @@ function renderHome(){
   var a=agg(cur),h=backupBanner(),hj=todayISO();
   var capT=S.cats.reduce(function(x,c){return c.tipo==='d'?x+catCap(c,cur):x},0);
   if(!S.lanc.length&&capT===0)h+='<div class="card"><div class="ttl">Comece por aqui</div><ol class="steps"><li>Defina os tetos em <b>Orçamento</b></li><li>Confira suas contas e investimentos aqui no Início e seus cartões em <b>Cartões</b></li><li>Toque no <b>+</b> e lance a receita do mês</li></ol></div>';
-  var saldo=a.rec-a.desp,pr=pct(a.desp,a.rec);
-  /* balanço no estilo Mobills: saldo em destaque no centro; receitas e despesas menores, lado a lado */
-  h+='<div class="card bal tetocard"><div class="bal-l">Saldo do mês</div><div class="bal-v '+(saldo<0?'neg':'')+'">'+money(saldo)+'</div>'+
-    '<div class="bal-row"><button type="button" class="bal-it" data-filtro="r" aria-label="Ver receitas do mês no extrato"><span class="bal-ic up">↑</span><div><div class="l">Receitas</div><div class="bal-n pos">'+money(a.rec)+'</div>'+(a.recP?'<div class="bal-p">+ '+money(a.recP)+' previsto</div>':'')+'</div></button>'+
-    '<button type="button" class="bal-it" data-filtro="d" aria-label="Ver despesas do mês no extrato"><span class="bal-ic dn">↓</span><div><div class="l">Despesas</div><div class="bal-n neg">'+money(a.desp)+'</div>'+(a.despP?'<div class="bal-p">+ '+money(a.despP)+' previsto</div>':'')+'</div></button></div>'+
-    (a.recP||a.despP?'<div class="row sp s" style="margin-top:10px"><span>Saldo previsto no fim do mês</span><b class="'+(a.rec+a.recP-a.desp-a.despP<0?'neg':'')+'">'+money(a.rec+a.recP-a.desp-a.despP)+'</b></div>':'')+
+  var pr=pct(a.desp,a.rec),now=ymNow(),bm=a.rec-a.desp,bmP=a.rec+a.recP-a.desp-a.despP;
+  /* como no Mobills: em destaque o SALDO EM CONTAS (dinheiro real, acumulado dos meses anteriores);
+     o balanço do mês (receitas − despesas do mês) fica numa linha abaixo */
+  var sRot,sV,sPrev=null;
+  if(cur===now){sRot='Saldo em contas';sV=saldoContasFim(cur,false);sPrev=saldoContasFim(cur,true);if(Math.abs(sPrev-sV)<0.005)sPrev=null}
+  else if(cur<now){sRot='Saldo em contas no fim do mês';sV=saldoContasFim(cur,false)}
+  else{sRot='Saldo previsto em contas no fim do mês';sV=saldoContasFim(cur,true)}
+  h+='<div class="card bal tetocard"><div class="bal-l">'+sRot+'</div><div class="bal-v '+(sV<0?'neg':'')+'">'+money(sV)+'</div>'+
+    (sPrev!==null?'<div class="bal-pv">Previsto no fim do mês: <b class="'+(sPrev<0?'neg':'')+'">'+money(sPrev)+'</b></div>':'')+
+    '<div class="bal-row"><button type="button" class="bal-it" data-filtro="r" aria-label="Ver receitas do mês no extrato"><span class="bal-ic up">↑</span><div><div class="l">Receitas</div><div class="bal-n pos">'+money(a.rec)+'</div>'+(a.recP?'<div class="bal-p"><span>+ '+money(a.recP)+'</span> previsto</div>':'')+'</div></button>'+
+    '<button type="button" class="bal-it" data-filtro="d" aria-label="Ver despesas do mês no extrato"><span class="bal-ic dn">↓</span><div><div class="l">Despesas</div><div class="bal-n neg">'+money(a.desp)+'</div>'+(a.despP?'<div class="bal-p"><span>+ '+money(a.despP)+'</span> previsto</div>':'')+'</div></button></div>'+
+    '<div class="row sp s" style="margin-top:10px"><span>Balanço do mês</span><b class="'+(bm<0?'neg':'pos')+'">'+money(bm)+'</b></div>'+
+    (a.recP||a.despP?'<div class="row sp s"><span>Balanço previsto do mês</span><b class="'+(bmP<0?'neg':'')+'">'+money(bmP)+'</b></div>':'')+
     (a.rec>0?bar(pr)+'<div class="row sp s"><span>Despesas usaram '+pctTxt(pr)+' da receita</span><b class="'+st(pr)+'">'+pctTxt(pr)+'</b></div>':'')+
     (a.apo?'<div class="row sp s" style="margin-top:8px"><span>📈 '+(a.apo>0?'Aplicado em investimentos':'Resgatado de investimentos')+'</span><b class="'+(a.apo>0?'pos':'')+'">'+money(Math.abs(a.apo))+'</b></div>':'')+'</div>';
   /* ordem do Início: balanço → vencimentos → contas e investimentos → cartões → regra 50/30/20 → tetos do mês */
@@ -643,9 +664,9 @@ function renderList(){
   var colD='<div class="rcol"><div class="l">Despesas</div>'+linha('Pago',desp,'neg')+linha('A pagar',despP,'warn')+linha('Total',desp+despP,'',true)+'</div>';
   var sh=rec-desp,sf=rec+recP-desp-despP;
   h+='<div class="card">'+(xf==='r'?colR:xf==='d'?colD:'<div class="grid2">'+colR+colD+'</div>')+
-    (xf==='all'?'<div class="saldos"><div class="rl"><span>Saldo até agora</span><b class="'+(sh<0?'neg':'')+'">'+(sh<0?'− ':'')+money(Math.abs(sh))+'</b></div>'+
-      '<div class="rl tot"><span>Saldo previsto no fim do mês</span><b class="'+(sf<0?'neg':'pos')+'">'+(sf<0?'− ':'')+money(Math.abs(sf))+'</b></div></div>':'')+
-    '<div class="note">'+L.length+(L.length===1?' lançamento':' lançamentos')+' em '+esc(ymLabel(cur))+(filtrado?' com o filtro':'')+'. "A receber" e "A pagar" são os pendentes e programados do mês.</div></div>';
+    (xf==='all'?'<div class="saldos"><div class="rl"><span>Balanço até agora</span><b class="'+(sh<0?'neg':'')+'">'+(sh<0?'− ':'')+money(Math.abs(sh))+'</b></div>'+
+      '<div class="rl tot"><span>Balanço previsto do mês</span><b class="'+(sf<0?'neg':'pos')+'">'+(sf<0?'− ':'')+money(Math.abs(sf))+'</b></div></div>':'')+
+    '<div class="note">'+L.length+(L.length===1?' lançamento':' lançamentos')+' em '+esc(ymLabel(cur))+(filtrado?' com o filtro':'')+'. "A receber" e "A pagar" são os pendentes e programados do mês. O balanço é só a diferença entre o que entrou e saiu no mês; o saldo acumulado das contas fica no Início.</div></div>';
   h+=calHTML();
   if(!L.length)h+='<div class="card"><div class="empty">'+(filtrado?'Nenhum lançamento com esse filtro neste mês.':'Nenhum lançamento neste mês. Toque no + para lançar.')+'</div></div>';
   var groups={},order=[];
@@ -716,8 +737,8 @@ function vencCard(){
   it.forEach(function(x){
     var tag=x.d<hj?'<span class="pill late">atrasado</span>':x.d===hj?'<span class="pill pend">vence hoje</span>':'<span class="pill">'+dShort(x.d)+'</span>';
     if(x.l){var l=x.l,sb=subIdx[l.sub],rec=l.tipo==='r',nome=l.desc||(sb?sb.s.nome:l.tipo==='t'?'Transferência':'?');
-      h+='<div class="vrow"><button type="button" class="t vt" data-act="vedit" data-id="'+l.id+'" aria-label="Editar '+esc(nome)+'"><div class="n">'+esc(nome)+tag+'</div><div class="s">'+(rec?'+ ':'')+money(l.valor)+(sb?' · '+esc(sb.c.nome):'')+'</div></button><button type="button" class="chip" data-act="vpago" data-id="'+l.id+'">'+(rec?'Receber':'Pagar')+'</button></div>'}
-    else h+='<div class="vrow"><button type="button" class="t vt" data-act="vverfat" data-id="'+x.c.id+'" data-ym="'+vencYM(x.c,x.fy)+'" aria-label="Ver '+faturaNome(x.c,x.fy)+'"><div class="n">💳 '+esc(x.c.nome)+' · '+faturaNome(x.c,x.fy)+tag+'</div><div class="s">'+money(x.v)+' a pagar</div></button><button type="button" class="chip" data-act="vfat" data-id="'+x.c.id+'" data-fat="'+x.fy+'">Pagar</button></div>';
+      h+='<div class="vrow"><button type="button" class="t vt" data-act="vedit" data-id="'+l.id+'" aria-label="Editar '+esc(nome)+'"><div class="n nf"><span class="nt">'+esc(nome)+'</span>'+tag+'</div><div class="s">'+(rec?'+ ':'')+money(l.valor)+(sb?' · '+esc(sb.c.nome):'')+'</div></button><button type="button" class="chip" data-act="vpago" data-id="'+l.id+'">'+(rec?'Receber':'Pagar')+'</button></div>'}
+    else h+='<div class="vrow"><button type="button" class="t vt" data-act="vverfat" data-id="'+x.c.id+'" data-ym="'+vencYM(x.c,x.fy)+'" aria-label="Ver '+faturaNome(x.c,x.fy)+'"><div class="n nf"><span class="nt">💳 '+esc(x.c.nome)+' · '+faturaNome(x.c,x.fy)+'</span>'+tag+'</div><div class="s">'+money(x.v)+' a pagar</div></button><button type="button" class="chip" data-act="vfat" data-id="'+x.c.id+'" data-fat="'+x.fy+'">Pagar</button></div>';
   });
   return h+'</div>';
 }
