@@ -955,7 +955,7 @@ function catEditor(c,ci){
     /* cada subcategoria: teto (receita: valor) e Recorrente sim/não; recorrente lança todo mês como pendente */
     var isD=c.tipo==='d',rc=s.modo!=='teto',base=baseFor(s,cur),fr=rc?fixoRec(s):null;
     h+='<div class="ssub" data-s="'+si+'"><div class="row"><input data-f="snome" value="'+esc(s.nome)+'" maxlength="30" aria-label="Nome da subcategoria">'+
-      (isD||rc?'<span class="capw"><span class="cur">'+esc(curSym())+'</span><input data-f="base" class="capin" inputmode="decimal" value="'+showNum(base||null)+'" placeholder="'+(isD?'Teto':'Valor')+'" aria-label="'+(isD?'Teto':'Valor')+' de '+esc(s.nome)+'"></span>':'')+
+      (isD||rc?'<span class="capw"><span class="cur">'+(isD?'Teto':'Valor')+' '+esc(curSym())+'</span><input data-f="base" class="capin" inputmode="decimal" value="'+showNum(base||null)+'" placeholder="0,00" aria-label="'+(isD?'Teto':'Valor')+' de '+esc(s.nome)+'"></span>':'')+
       '<button type="button" class="x" data-act="rmsub" aria-label="Excluir subcategoria">✕</button></div>';
     h+='<label class="sw" style="margin-top:10px"><input type="checkbox" data-f="rec"'+(rc?' checked':'')+'> Recorrente <span class="s">('+(isD?'lança todo mês':'entra todo mês')+')</span></label>';
     if(rc){
@@ -1028,15 +1028,30 @@ function regraHTML(){
 /* Orçamento numa aba só, organizado pela regra: cada parte (limite, planejado, gasto) com as suas categorias;
    tocar numa categoria abre as subcategorias, mover de parte e editar */
 var bGrp='all';
+/* categorias de receita à vista no Orçamento (antes só apareciam dentro de "Editar categorias e tetos"):
+   quanto entrou em cada uma no mês, tocar abre a categoria para editar, e o botão cria uma nova */
+function receitasCard(){
+  var v={},vp={},tot=0,totP=0;
+  S.lanc.forEach(function(l){if(l.tipo!=='r'||mesOrc(l)!==cur)return;if(isReal(l)){v[l.cat]=(v[l.cat]||0)+l.valor;tot+=l.valor}else{vp[l.cat]=(vp[l.cat]||0)+l.valor;totP+=l.valor}});
+  var h='<div class="card"><div class="ttl">Receitas · categorias</div>';
+  S.cats.forEach(function(c){if(c.tipo!=='r')return;
+    var subs=c.subs.map(function(x){return esc(x.nome)}).join(', ');
+    h+=simpleRow(c.icon,c.cor,c.nome,(vp[c.id]?'+ '+money(vp[c.id])+' previsto · ':'')+subs,money(v[c.id]||0),v[c.id]?'pos':'','data-act="e1" data-id="'+c.id+'" aria-label="Editar a categoria de receita '+esc(c.nome)+'"')});
+  h+='<div class="row sp s" style="margin-top:8px"><span>Recebido em '+esc(ymShort(cur))+(totP?' (+ '+money(totP)+' previsto)':'')+'</span><b>'+money(tot)+'</b></div>'+
+    '<div class="note">A receita do mês é a base da regra 50/30/20. Toque numa categoria para editar as subcategorias ou marcar como recorrente (salário, por exemplo).</div>'+
+    '<button type="button" class="btn newg" data-act="addcatr">+ Nova categoria de receita</button></div>';
+  return h;
+}
 function orcHTML(){
   var a=agg(cur),R=S.config.rule,rec=a.rec+a.recP,h='',dc=S.cats.filter(function(c){return c.tipo==='d'});
-  h+='<div class="chips scroll" style="margin-top:4px">'+[['all','Tudo'],['n','Necessidades'],['d','Desejos'],['p','Poupança']].map(function(f){return'<button type="button" class="chip'+(bGrp===f[0]?' on':'')+'" data-bg="'+f[0]+'">'+f[1]+'</button>'}).join('')+'</div>';
+  h+='<div class="chips scroll" style="margin-top:4px">'+[['all','Tudo'],['r','Receitas'],['n','Necessidades'],['d','Desejos'],['p','Poupança']].map(function(f){return'<button type="button" class="chip'+(bGrp===f[0]?' on':'')+'" data-bg="'+f[0]+'">'+f[1]+'</button>'}).join('')+'</div>';
   var capT=dc.reduce(function(x,c){return x+catCap(c,cur)},0),gastoT=a.desp+a.despP,remT=capT-gastoT,pT=pct(gastoT,capT);
   if(bGrp==='all')h+='<div class="card"><div class="ttl">Tetos de '+esc(ymLabel(cur).toLowerCase())+'</div>'+
     '<div class="row sp"><span class="l">Gasto</span><b>'+money(gastoT)+' <span class="s">de '+money(capT)+'</span></b></div>'+barP(bar2(pct(a.desp,capT),pct(a.despP,capT),st(pT)),pT)+
     '<div class="row sp"><span class="l">Ainda posso gastar</span><b class="'+remCls(remT)+'">'+money(remT)+'</b></div>'+
     (capT===0?'<div class="note">Toque em <b>Editar categorias e tetos</b> para definir quanto quer gastar em cada categoria.</div>':'')+
     (rec>0?'':'<div class="note">Lance a receita do mês para ver o limite de cada parte da regra.</div>')+'</div>';
+  if(bGrp==='all'||bGrp==='r')h+=receitasCard();
   ['n','d','p'].forEach(function(g){
     if(bGrp!=='all'&&bGrp!==g)return;
     var cats=dc.filter(function(c){return(c.grupo||'d')===g}),alvo=R[g]/100*rec,plan=0;
@@ -1072,6 +1087,7 @@ function orcHTML(){
     if(!cats.length&&!(g==='p'&&(a.apo||a.apoP)))h+='<div class="empty">Nenhuma categoria nesta parte.</div>';
     h+='</div>';
   });
+  if(bGrp==='r')return h;
   return h+'<div class="note" style="margin:10px 4px 0">Limite = parte da receita do mês pela regra. Planejado = soma dos tetos. Gasto inclui os pendentes do mês (parte clara da barra). Na Poupança, aplicações em investimentos também contam.</div>';
 }
 function renderBudget(){
@@ -1081,7 +1097,8 @@ function renderBudget(){
   if(bEdit&&one){
     var oi=S.cats.indexOf(one);
     h+='<button type="button" class="btn primary" data-act="bedit" style="margin-top:8px">Concluir</button>';
-    h+='<div class="note" style="margin:14px 4px 0">Tetos a partir de <b>'+esc(ymLabel(cur))+'</b>. <b>Teto</b>: quanto pode gastar no mês. <b>Recorrente</b>: lançado sozinho todo mês como pendente; para mudar o valor de um mês, edite o lançamento daquele mês.</div>';
+    if(one.tipo==='r')h+='<div class="note" style="margin:14px 4px 0"><b>Categoria de receita.</b> Dê um nome e crie as subcategorias (ex.: Salário, 13º, Freelance). <b>Recorrente</b>: lançada sozinha todo mês como pendente, no dia e na conta escolhidos.</div>';
+    else h+='<div class="note" style="margin:14px 4px 0">Tetos a partir de <b>'+esc(ymLabel(cur))+'</b>. <b>Teto</b>: quanto pode gastar no mês. <b>Recorrente</b>: lançado sozinho todo mês como pendente; para mudar o valor de um mês, edite o lançamento daquele mês.</div>';
     if(one.tipo==='d')h+='<div class="sec">'+GICO[one.grupo||'d']+' '+GN[one.grupo||'d']+'</div>';
     h+=catEditor(one,oi);
     h+='<button type="button" class="btn ghost" data-act="ball">Editar todas as categorias</button>';
@@ -1099,7 +1116,7 @@ function renderBudget(){
       S.cats.forEach(function(c,ci){if(c.tipo==='d'&&(c.grupo||'d')===g)h+=catEditor(c,ci)});
       h+='<button type="button" class="btn newg" data-act="addcat" data-t="d" data-g="'+g+'">+ Categoria em '+GN[g]+'</button>';
     });
-    h+='<div class="sec">Receitas</div>';
+    h+='<div class="sec" id="recSec">💰 Receitas</div><div class="note" style="margin:0 4px 8px">Categorias usadas ao lançar uma receita pelo +.</div>';
     S.cats.forEach(function(c,ci){if(c.tipo==='r')h+=catEditor(c,ci)});
     h+='<button type="button" class="btn newg" data-act="addcat" data-t="r">+ Nova categoria de receita</button>';
     h+='<button type="button" class="btn primary" data-act="bedit">Concluir edição</button>';
@@ -1173,6 +1190,8 @@ vb.addEventListener('click',function(e){
   /* tocar numa categoria abre e fecha as subcategorias; o botão de dentro abre a edição só dela */
   if(a==='tgc'){openCats[b.dataset.id]=!openCats[b.dataset.id];renderBudget();return}
   if(a==='rg'){openRg[b.dataset.id]=!openRg[b.dataset.id];renderBudget();return}
+  if(a==='addcatr'){var nr=mkCat('r','Nova categoria','🏷️',COLORS[S.cats.length%COLORS.length],null,[mkSub('Geral','teto')]);nr.subs[0].hist=[{from:cur,v:0}];
+    S.cats.push(nr);reindex();save();bOne=nr.id;bEdit=true;$('#fab').hidden=true;render();window.scrollTo(0,0);focusLast(vb.querySelector('.scat'),'[data-f=cnome]');return}
   if(a==='e1'){bOne=b.dataset.id;bEdit=true;$('#fab').hidden=true;render();window.scrollTo(0,0);return}
   if(a==='ball'){bOne=null;renderBudget();window.scrollTo(0,0);return}
   if(a==='mvg'){var mc=catById(b.dataset.id);if(mc&&mc.grupo!==b.dataset.g){mc.grupo=b.dataset.g;save();renderBudget();toast(mc.nome+' agora está em '+GN[mc.grupo])}return}

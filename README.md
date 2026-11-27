@@ -13,7 +13,7 @@ Feito para uso no celular, em tema escuro e **sem internet** depois de instalado
 | **Início** | Saldo em contas (acumulado dos meses anteriores), receitas e despesas e balanço do mês, saldo de cada conta e investimentos, fatura de cada cartão, regra 50/30/20 e tetos que passaram ou estão quase no limite |
 | **Lançamentos** | Extrato do mês agrupado por dia, com filtros por tipo e por conta ou cartão |
 | **Cartões** | Tudo de cartão de crédito: fatura aberta (já gasto e programado), limite, próximas faturas com parcelas, faturas anteriores, Nova compra, Pagar fatura e cadastro dos cartões |
-| **Orçamento** | **Tetos e regra:** cada parte da regra 50/30/20 (limite, planejado e gasto) com as suas categorias e subcategorias, quanto resta em cada uma e a opção de mover categorias entre as partes. **Análise:** gráficos e tendências. Também é onde se editam as categorias e os tetos. |
+| **Orçamento** | **Tetos e regra:** cada parte da regra 50/30/20 (limite, planejado e gasto) com as suas categorias e subcategorias, quanto resta em cada uma e a opção de mover categorias entre as partes. Também mostra as **categorias de receita**, com o botão **+ Nova categoria de receita**. **Análise:** gráficos e tendências. Também é onde se editam as categorias e os tetos. |
 | **Mais** | Ajustes gerais: porcentagens da regra 50/30/20, moeda, backup e exportação |
 
 Cada coisa é gerenciada onde aparece: contas e investimentos no **Início** (com aplicar, resgatar e atualizar valor), cartões em **Cartões** e categorias e tetos no **Orçamento**.
@@ -71,7 +71,7 @@ Dica: faça um backup de vez em quando em **Mais → Exportar backup**.
 
 Por segurança, a página só executa o código do arquivo `app.js`: script embutido no HTML é bloqueado pelo navegador, e o app não pode se conectar a nenhum servidor.
 
-Para publicar uma versão nova, altere os arquivos e troque o nome do cache em `sw.js` (por exemplo, de `tetto-v5` para `tetto-v6`). O app se atualiza sozinho na próxima vez que for aberto com internet, sem perder os dados.
+Para publicar uma versão nova, altere os arquivos e troque o nome do cache em `sw.js` (por exemplo, de `tetto-v8` para `tetto-v9`). O app se atualiza sozinho na próxima vez que for aberto com internet, sem perder os dados.
 
 ## Licença
 
