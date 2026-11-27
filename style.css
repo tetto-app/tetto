@@ -245,3 +245,16 @@ button.ico::after{content:'✎';position:absolute;right:-4px;bottom:-4px;width:1
 .n.nf .nt{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .n.nf .pill{flex:0 0 auto;margin-left:0}
 .bal-pv{font-size:13px;color:var(--muted);margin:-10px 0 14px}
+/* editor de categorias: o nome da subcategoria ocupa a linha toda;
+   o teto (ou valor) e o ✕ vão para a linha de baixo, com o rótulo "Teto R$" dentro do campo */
+.scat .ssub>.row{flex-wrap:wrap;row-gap:8px;gap:8px}
+.scat .ssub>.row [data-f=snome]{order:1;flex:1 1 100%;min-width:0}
+.scat .ssub>.row .capw{order:2;flex:1 1 0}
+.scat .ssub>.row .x{order:3}
+.scat .ssub>.row .capin{padding-left:78px;text-align:left}
+.scat .ssub>.row:not(:has(.capw)) [data-f=snome]{flex:1 1 0}
+/* recorrente: o dia é curto (1 a 31), então a conta fica com quase toda a largura */
+.scat .recg{grid-template-columns:78px minmax(0,1fr);gap:8px}
+.scat .recg label{font-size:12.5px}
+.scat .recg input{text-align:center;min-height:44px;padding:8px 6px}
+.scat .recg select{font-size:14px;min-height:44px;padding:8px 6px}

@@ -960,8 +960,8 @@ function catEditor(c,ci){
     h+='<label class="sw" style="margin-top:10px"><input type="checkbox" data-f="rec"'+(rc?' checked':'')+'> Recorrente <span class="s">('+(isD?'lança todo mês':'entra todo mês')+')</span></label>';
     if(rc){
       var dDia=fr?fr.dia:(s.dia||10),dCta=fr?fr.conta:(s.cta||null);
-      h+='<div class="grid2"><label>'+(isD?'Vence todo dia':'Cai todo dia')+'<input data-f="adia" inputmode="numeric" value="'+dDia+'"></label><label>'+(isD?'Pago com':'Recebido em')+'<select data-f="aconta">'+contaOptsT(fixoContas(c.tipo),dCta)+'</select></label></div>';
-      if(!fr)h+='<div class="s" style="margin:4px 2px 0">Informe o '+(isD?'teto':'valor')+' ao lado do nome para começar a lançar todo mês.</div>';
+      h+='<div class="grid2 recg"><label>'+(isD?'Vence no dia':'Cai no dia')+'<input data-f="adia" inputmode="numeric" value="'+dDia+'"></label><label>'+(isD?'Pago com':'Recebido em')+'<select data-f="aconta">'+contaOptsT(fixoContas(c.tipo),dCta)+'</select></label></div>';
+      if(!fr)h+='<div class="s" style="margin:4px 2px 0">Informe o '+(isD?'teto':'valor')+' abaixo do nome para começar a lançar todo mês.</div>';
     }
     if(isD){var sg=(ag.sub[s.id]||0)+(ag.subP[s.id]||0);if(sg)h+='<div class="s" style="margin:8px 2px 0">Em '+ys+': '+money(sg)+(base>0?' de '+money(base):'')+'</div>'}
     h+='</div>';
