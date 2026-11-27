@@ -340,7 +340,7 @@ function cap1(s){return s.charAt(0).toUpperCase()+s.slice(1)}
    em Lançamentos e Orçamento ele acompanha o balão de filtro escolhido */
 function tituloAba(){
   if(tab==='list')return{all:'Transações',d:'Despesas',r:'Receitas',t:'Transferências'}[xf]||'Transações';
-  if(tab==='budget'){if(bEdit)return'Editar categorias';if(bView==='analise')return'Análise';return{all:'Tetos e regra',r:'Receitas',n:'Necessidades',d:'Desejos',p:'Poupança'}[bGrp]||'Tetos e regra'}
+  if(tab==='budget'){if(bEdit)return bOne?'Editar categoria':bGrp==='all'?'Editar categorias':'Editar '+BGN[bGrp];if(bView==='analise')return'Análise';return{all:'Tetos e regra',r:'Receitas',n:'Necessidades',d:'Desejos',p:'Poupança'}[bGrp]||'Tetos e regra'}
   return{home:'Tetto',cards:'Cartões',more:'Ajustes'}[tab];
 }
 function renderHeader(){
@@ -1063,9 +1063,12 @@ function receitasCard(){
   if(bGrp==='r')h+='<div class="note" style="margin:10px 4px 0">Previsto = recebido + a receber no mês (parte clara da barra). A receita do mês é a base da regra 50/30/20.</div>';
   return h;
 }
+/* balões de filtro do Orçamento: os mesmos na visão e no editor (o filtro escolhido vale para os dois) */
+var BGN={all:'Tudo',r:'Receitas',n:'Necessidades',d:'Desejos',p:'Poupança'};
+function filtrosOrc(){return'<div class="chips scroll" style="margin-top:4px">'+['all','r','n','d','p'].map(function(k){return'<button type="button" class="chip'+(bGrp===k?' on':'')+'" data-bg="'+k+'">'+BGN[k]+'</button>'}).join('')+'</div>'}
 function orcHTML(){
   var a=agg(cur),R=S.config.rule,rec=a.rec+a.recP,h='',dc=S.cats.filter(function(c){return c.tipo==='d'});
-  h+='<div class="chips scroll" style="margin-top:4px">'+[['all','Tudo'],['r','Receitas'],['n','Necessidades'],['d','Desejos'],['p','Poupança']].map(function(f){return'<button type="button" class="chip'+(bGrp===f[0]?' on':'')+'" data-bg="'+f[0]+'">'+f[1]+'</button>'}).join('')+'</div>';
+  h+=filtrosOrc();
   var capT=dc.reduce(function(x,c){return x+catCap(c,cur)},0),gastoT=a.desp+a.despP,remT=capT-gastoT,pT=pct(gastoT,capT);
   if(bGrp==='all')h+='<div class="card"><div class="ttl">Tetos de '+esc(ymLabel(cur).toLowerCase())+'</div>'+
     '<div class="row sp"><span class="l">Gasto</span><b>'+money(gastoT)+' <span class="s">de '+money(capT)+'</span></b></div>'+barP(bar2(pct(a.desp,capT),pct(a.despP,capT),st(pT)),pT)+
@@ -1126,10 +1129,12 @@ function renderBudget(){$('#hTitle').textContent=tituloAba();
     h+='<button type="button" class="btn primary" data-act="bedit">Concluir</button>';
   }else if(bEdit){
     h+='<button type="button" class="btn primary" data-act="bedit" style="margin-top:8px">Concluir edição</button>';
-    h+='<div class="note" style="margin:14px 4px 0">Tetos a partir de <b>'+esc(ymLabel(cur))+'</b>. <b>Teto</b>: quanto pode gastar no mês. <b>Recorrente</b>: lançado sozinho todo mês como pendente; para mudar o valor de um mês, edite o lançamento daquele mês.</div>';
+    h+=filtrosOrc();
+    if(bGrp!=='r')h+='<div class="note" style="margin:14px 4px 0">Tetos a partir de <b>'+esc(ymLabel(cur))+'</b>. <b>Teto</b>: quanto pode gastar no mês. <b>Recorrente</b>: lançado sozinho todo mês como pendente; para mudar o valor de um mês, edite o lançamento daquele mês.</div>';
     /* hierarquia: parte da regra → categorias → subcategorias */
     var Rg=S.config.rule,rec=agg(cur).rec;
     ['n','d','p'].forEach(function(g){
+      if(bGrp!=='all'&&bGrp!==g)return;
       var plan=0;S.cats.forEach(function(c){if(c.tipo==='d'&&(c.grupo||'d')===g)plan+=catCap(c,cur)});
       h+='<div class="card gcard" style="--gc:'+GCOR[g]+';margin-top:18px"><div class="row sp"><span class="gt">'+GICO[g]+' '+GN[g]+'</span><span class="pill" style="margin:0">regra '+Rg[g]+'%</span></div>'+
         '<div class="s">'+cap1(GDESC[g])+' · planejado <b>'+money(plan)+'</b>'+(rec>0?' de '+money(Rg[g]/100*rec)+' ('+Rg[g]+'% da receita de '+ymShort(cur)+')':'')+'</div>'+
@@ -1137,13 +1142,15 @@ function renderBudget(){$('#hTitle').textContent=tituloAba();
       S.cats.forEach(function(c,ci){if(c.tipo==='d'&&(c.grupo||'d')===g)h+=catEditor(c,ci)});
       h+='<button type="button" class="btn newg" data-act="addcat" data-t="d" data-g="'+g+'">+ Categoria em '+GN[g]+'</button>';
     });
+    if(bGrp==='all'||bGrp==='r'){
     h+='<div class="card gcard" id="recSec" style="--gc:#34d399;margin-top:18px"><div class="row sp"><span class="gt">💰 Receitas</span><span class="pill" style="margin:0">base da regra</span></div><div class="s">Categorias usadas ao lançar uma receita pelo +. Marque Recorrente no que entra todo mês (salário, por exemplo).</div></div>';
     S.cats.forEach(function(c,ci){if(c.tipo==='r')h+=catEditor(c,ci)});
     h+='<button type="button" class="btn newg" data-act="addcat" data-t="r">+ Nova categoria de receita</button>';
+    }
     h+='<button type="button" class="btn primary" data-act="bedit">Concluir edição</button>';
   }else{
     h+='<div class="seg">'+[['tetos','Tetos e regra'],['analise','Análise']].map(function(v){return'<button type="button" data-bv="'+v[0]+'" class="'+(bView===v[0]?'on':'')+'">'+v[1]+'</button>'}).join('')+'</div>';
-    h+=bView==='tetos'?orcHTML()+'<button type="button" class="btn ghost" data-act="bedit">Editar categorias e tetos</button>':dashHTML();
+    h+=bView==='tetos'?orcHTML()+'<button type="button" class="btn ghost" data-act="bedit">'+(bGrp==='all'?'Editar categorias e tetos':'✎ Editar '+BGN[bGrp])+'</button>':dashHTML();
   }
   $('#view-budget').innerHTML=h;chipsAtivo($('#view-budget'));$('#view-budget').querySelectorAll('textarea').forEach(autoAlt);
 }
@@ -1205,7 +1212,7 @@ vb.addEventListener('change',function(e){
 });
 vb.addEventListener('click',function(e){
   var v=e.target.closest('[data-bv]');if(v){bView=v.dataset.bv;render();return}
-  var bg=e.target.closest('[data-bg]');if(bg){bGrp=bg.dataset.bg;renderBudget();return}
+  var bg=e.target.closest('[data-bg]');if(bg){bGrp=bg.dataset.bg;renderBudget();if(bEdit)window.scrollTo(0,0);return}
   var dn=e.target.closest('[data-dn]');if(dn){dN=Number(dn.dataset.dn);dSel=null;renderBudget();return}
   var g=e.target.closest('[data-act=dbar]');if(g){dSel=Number(g.dataset.i);renderBudget();return}
   var b=e.target.closest('[data-act]');if(!b)return;

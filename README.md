@@ -71,7 +71,7 @@ Dica: faça um backup de vez em quando em **Mais → Exportar backup**.
 
 Por segurança, a página só executa o código do arquivo `app.js`: script embutido no HTML é bloqueado pelo navegador, e o app não pode se conectar a nenhum servidor.
 
-Para publicar uma versão nova, altere os arquivos e troque o nome do cache em `sw.js` (por exemplo, de `tetto-v15` para `tetto-v16`). O app se atualiza sozinho na próxima vez que for aberto com internet, sem perder os dados.
+Para publicar uma versão nova, altere os arquivos e troque o nome do cache em `sw.js` (por exemplo, de `tetto-v16` para `tetto-v17`). O app se atualiza sozinho na próxima vez que for aberto com internet, sem perder os dados.
 
 ## Licença
 
