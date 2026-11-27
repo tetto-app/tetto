@@ -747,7 +747,8 @@ function download(name,text,type){
 }
 /* planilha: separador ";" e vírgula decimal (padrão do Excel em português), com acentos (BOM UTF-8) */
 function toCSV(){
-  function cell(x){x=String(x==null?'':x);if(/^[=+\-@\t\r]/.test(x))x="'"+x;return/[;"\n\r]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x}
+  /* protege contra fórmulas no Excel, mas deixa número negativo (ex.: -50,00) como número */
+  function cell(x){x=String(x==null?'':x);if(/^(?:[=+@\t\r]|-(?![0-9][0-9.,]*$))/.test(x))x="'"+x;return/[;"\n\r]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x}
   var TL={d:'Despesa',r:'Receita',t:'Transferência',a:'Rendimento'},rows=[['Data','Tipo','Categoria','Subcategoria','Grupo','Conta','Conta destino','Valor','Parcela','Descrição']];
   S.lanc.slice().sort(function(a,b){return a.data<b.data?-1:a.data>b.data?1:(a.ts||0)-(b.ts||0)}).forEach(function(l){
     var x=subIdx[l.sub],co=contaById(l.conta),pa=contaById(l.para),d=l.data.split('-');
