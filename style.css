@@ -258,3 +258,40 @@ button.ico::after{content:'✎';position:absolute;right:-4px;bottom:-4px;width:1
 .scat .recg label{font-size:12.5px}
 .scat .recg input{text-align:center;min-height:44px;padding:8px 6px}
 .scat .recg select{font-size:14px;min-height:44px;padding:8px 6px}
+
+/* ===== visual mais limpo, no estilo do Mobills (2026-11-27) =====
+   campos menores e sem borda (só o fundo um pouco mais claro), letras um pouco menores,
+   e nomes compridos quebram em até 2 linhas nas listas, em vez de serem cortados */
+input,select{min-height:42px;font-size:15px;padding:8px 12px;border:0;border-radius:10px}
+label{font-size:12.5px;margin-top:10px}
+label>input,label>select{margin-top:4px}
+.x{width:36px;height:36px;border:0;border-radius:10px;background:none}
+.scat [data-f=cnome]{font-size:17px;min-height:44px}
+.scat .ssub [data-f=snome]{font-size:15px;min-height:40px}
+.scat .capin,.scat .recg input,.scat .recg select{min-height:40px}
+/* editor: sem caixas dentro de caixas; cada subcategoria separada só por uma linha fina */
+.scat .ssub{background:none;border:0;border-top:1px solid var(--line);border-radius:0;margin:10px 0 0;padding:10px 0 0}
+.scat .subttl{margin:12px 0 0}
+.scat .sw{min-height:36px;font-size:14px}
+/* listas: nome com até 2 linhas, letra 15px */
+.khead .n{white-space:normal;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:15px;line-height:1.25}
+.khead .s{line-height:1.3}
+.n.nf .nt{white-space:normal;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25}
+.khead .s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* nomes no editor: campo que cresce em vez de cortar o texto */
+textarea[data-f=cnome],textarea[data-f=snome]{width:100%;resize:none;overflow:hidden;background:var(--card2);border:0;border-radius:10px;color:var(--text);font:inherit;line-height:1.3;padding:9px 12px;margin:0;display:block}
+textarea[data-f=cnome]{font-size:17px;font-weight:700;min-height:44px}
+textarea[data-f=snome]{font-size:15px;font-weight:600;min-height:40px}
+textarea[data-f]:focus{outline:2px solid var(--accent);outline-offset:0}
+.scat>.row>textarea[data-f=cnome]{flex:1;min-width:0}
+/* situação do lançamento (pendente, atrasado, programado): texto pequeno embaixo do valor, sem etiqueta */
+.aw{display:flex;flex-direction:column;align-items:flex-end;gap:1px;flex:0 0 auto}
+.st{font-size:11px;font-weight:500;color:var(--muted);white-space:nowrap}
+.st.pend{color:var(--warn)}
+.st.late{color:var(--bad)}
+/* extrato: valor e ícone um pouco menores, para o nome ter mais largura */
+.ex{gap:9px}
+.ex .t{flex:1}
+.ex .ico{width:30px;height:30px;font-size:15px}
+.ex .a{font-size:14px}
+.ex .n{font-size:14.5px}

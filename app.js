@@ -407,9 +407,10 @@ function lItem(l){
   if(l.tipo==='d'){var mo=mesOrc(l);if(mo!==l.data.slice(0,7))t2+=' · conta em '+MESES[+mo.slice(5,7)-1].toLowerCase()}
   /* etiquetas: pendente (ainda não pago), atrasado (pendente com data já passada) ou programado (data futura) */
   var hj=todayISO(),pill='';
-  if(l.pend)pill=l.data<hj?'<span class="pill late">atrasado</span>':'<span class="pill pend">pendente</span>';
-  else if(l.data>hj&&l.pg)pill='<span class="pill">'+(l.tipo==='r'?'recebido':'pago')+' antes</span>';
-  else if(l.data>hj)pill='<span class="pill">programado</span>';
+  /* como no Mobills: a situação fica em letra pequena embaixo do valor, sem etiqueta ao lado do nome */
+  if(l.pend)pill=l.data<hj?'<span class="st late">atrasado</span>':'<span class="st pend">pendente</span>';
+  else if(l.data>hj&&l.pg)pill='<span class="st">'+(l.tipo==='r'?'recebido':'pago')+' antes</span>';
+  else if(l.data>hj)pill='<span class="st">programado</span>';
   /* linha enxuta: nome e valor em cima; embaixo, numa linha só, subcategoria/categoria, conta ou cartão e o mês em que conta */
   var naCartao=l.tipo==='d'&&co&&co.tipo==='cartao',sub2=esc(t2);
   if(l.tipo==='d'||l.tipo==='r'){var xs=subIdx[l.sub],mo2=l.tipo==='d'?mesOrc(l):l.data.slice(0,7);
@@ -417,7 +418,7 @@ function lItem(l){
     var rot=xs?(dif?xs.s.nome:xs.c.nome):'';if(rot&&rot.toLowerCase()===t1.replace(/ \(\d+\/\d+\)$/,'').toLowerCase())rot='';
     sub2=(rot?esc(rot)+' · ':'')+(naCartao?'<b class="vcard">'+esc(co.nome)+'</b>':esc(co?co.nome:'?'))+
       (mo2!==l.data.slice(0,7)?' · conta em '+MESES[+mo2.slice(5,7)-1].slice(0,3).toLowerCase():'');}
-  return'<button class="ex'+(isReal(l)?'':' pnd')+(naCartao?' excard':'')+'" data-id="'+l.id+'"><span class="ico" style="--cc:'+col+'">'+esc(ico)+(naCartao?'<span class="icard" aria-hidden="true">💳</span>':'')+'</span><span class="t"><div class="n nf"><span class="nt">'+esc(t1)+'</span>'+pill+'</div><div class="s">'+sub2+'</div></span>'+amt+'</button>';
+  return'<button class="ex'+(isReal(l)?'':' pnd')+(naCartao?' excard':'')+'" data-id="'+l.id+'"><span class="ico" style="--cc:'+col+'">'+esc(ico)+(naCartao?'<span class="icard" aria-hidden="true">💳</span>':'')+'</span><span class="t"><div class="n nf"><span class="nt">'+esc(t1)+'</span></div><div class="s">'+sub2+'</div></span>'+(pill?'<span class="aw">'+amt+pill+'</span>':amt)+'</button>';
 }
 function sortL(a,b){return a.data<b.data?1:a.data>b.data?-1:(b.ts||0)-(a.ts||0)}
 /* attr (opcional): a linha vira um botão tocável, com seta */
@@ -718,6 +719,8 @@ function contaInput(e){
   save();
 }
 function iconBtn(c){return'<button type="button" class="ico" data-act="pickc" style="--cc:var(--accent)" aria-label="Escolher ícone">'+esc(contaIcon(c))+'</button>'}
+/* campo de nome cresce para mostrar o nome inteiro (até 2 linhas ou mais) */
+function autoAlt(el){el.style.height='auto';el.style.height=el.scrollHeight+'px'}
 function focusLast(root,sel){var ins=root.querySelectorAll(sel);ins=ins[ins.length-1];if(ins){ins.focus();ins.select()}}
 
 /* ---------- Cartões: tudo de cartão num só lugar ---------- */
@@ -735,10 +738,10 @@ function vencCard(){
   it.sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0});
   var h='<div class="card"><div class="ttl">Vencimentos</div>';
   it.forEach(function(x){
-    var tag=x.d<hj?'<span class="pill late">atrasado</span>':x.d===hj?'<span class="pill pend">vence hoje</span>':'<span class="pill">'+dShort(x.d)+'</span>';
+    var tag=x.d<hj?'<span class="st late">atrasado</span> · ':x.d===hj?'<span class="st pend">vence hoje</span> · ':'<span class="st">dia '+dShort(x.d)+'</span> · ';
     if(x.l){var l=x.l,sb=subIdx[l.sub],rec=l.tipo==='r',nome=l.desc||(sb?sb.s.nome:l.tipo==='t'?'Transferência':'?');
-      h+='<div class="vrow"><button type="button" class="t vt" data-act="vedit" data-id="'+l.id+'" aria-label="Editar '+esc(nome)+'"><div class="n nf"><span class="nt">'+esc(nome)+'</span>'+tag+'</div><div class="s">'+(rec?'+ ':'')+money(l.valor)+(sb?' · '+esc(sb.c.nome):'')+'</div></button><button type="button" class="chip" data-act="vpago" data-id="'+l.id+'">'+(rec?'Receber':'Pagar')+'</button></div>'}
-    else h+='<div class="vrow"><button type="button" class="t vt" data-act="vverfat" data-id="'+x.c.id+'" data-ym="'+vencYM(x.c,x.fy)+'" aria-label="Ver '+faturaNome(x.c,x.fy)+'"><div class="n nf"><span class="nt">💳 '+esc(x.c.nome)+' · '+faturaNome(x.c,x.fy)+'</span>'+tag+'</div><div class="s">'+money(x.v)+' a pagar</div></button><button type="button" class="chip" data-act="vfat" data-id="'+x.c.id+'" data-fat="'+x.fy+'">Pagar</button></div>';
+      h+='<div class="vrow"><button type="button" class="t vt" data-act="vedit" data-id="'+l.id+'" aria-label="Editar '+esc(nome)+'"><div class="n nf"><span class="nt">'+esc(nome)+'</span></div><div class="s">'+tag+(rec?'+ ':'')+money(l.valor)+(sb?' · '+esc(sb.c.nome):'')+'</div></button><button type="button" class="chip" data-act="vpago" data-id="'+l.id+'">'+(rec?'Receber':'Pagar')+'</button></div>'}
+    else h+='<div class="vrow"><button type="button" class="t vt" data-act="vverfat" data-id="'+x.c.id+'" data-ym="'+vencYM(x.c,x.fy)+'" aria-label="Ver '+faturaNome(x.c,x.fy)+'"><div class="n nf"><span class="nt">💳 '+esc(x.c.nome)+' · '+faturaNome(x.c,x.fy)+'</span></div><div class="s">'+tag+money(x.v)+' a pagar</div></button><button type="button" class="chip" data-act="vfat" data-id="'+x.c.id+'" data-fat="'+x.fy+'">Pagar</button></div>';
   });
   return h+'</div>';
 }
@@ -947,14 +950,14 @@ function dashHTML(){
 }
 function catEditor(c,ci){
   var ag=c.tipo==='d'?agg(cur):null;
-  var ys=ymShort(cur),h='<div class="card scat" data-c="'+ci+'" style="--cc:'+c.cor+'"><div class="row"><button type="button" class="ico" data-act="pick" style="--cc:'+c.cor+'" aria-label="Escolher ícone e cor">'+esc(c.icon)+'</button><input data-f="cnome" value="'+esc(c.nome)+'" maxlength="30" aria-label="Nome da categoria"><button type="button" class="x" data-act="rmcat" aria-label="Excluir categoria">✕</button></div>';
+  var ys=ymShort(cur),h='<div class="card scat" data-c="'+ci+'" style="--cc:'+c.cor+'"><div class="row"><button type="button" class="ico" data-act="pick" style="--cc:'+c.cor+'" aria-label="Escolher ícone e cor">'+esc(c.icon)+'</button><textarea data-f="cnome" rows="1" maxlength="30" enterkeyhint="done" aria-label="Nome da categoria">'+esc(c.nome)+'</textarea><button type="button" class="x" data-act="rmcat" aria-label="Excluir categoria">✕</button></div>';
   /* a parte da regra vem do agrupamento; trocar de parte fica na visão 50/30/20 ("Mover esta categoria para") */
   h+='<div class="subttl">Subcategorias de '+esc(c.nome)+'</div>';
   c.subs.forEach(function(s,si){
     /* linha principal: nome e teto lado a lado */
     /* cada subcategoria: teto (receita: valor) e Recorrente sim/não; recorrente lança todo mês como pendente */
     var isD=c.tipo==='d',rc=s.modo!=='teto',base=baseFor(s,cur),fr=rc?fixoRec(s):null;
-    h+='<div class="ssub" data-s="'+si+'"><div class="row"><input data-f="snome" value="'+esc(s.nome)+'" maxlength="30" aria-label="Nome da subcategoria">'+
+    h+='<div class="ssub" data-s="'+si+'"><div class="row"><textarea data-f="snome" rows="1" maxlength="30" enterkeyhint="done" aria-label="Nome da subcategoria">'+esc(s.nome)+'</textarea>'+
       (isD||rc?'<span class="capw"><span class="cur">'+(isD?'Teto':'Valor')+' '+esc(curSym())+'</span><input data-f="base" class="capin" inputmode="decimal" value="'+showNum(base||null)+'" placeholder="0,00" aria-label="'+(isD?'Teto':'Valor')+' de '+esc(s.nome)+'"></span>':'')+
       '<button type="button" class="x" data-act="rmsub" aria-label="Excluir subcategoria">✕</button></div>';
     h+='<label class="sw" style="margin-top:10px"><input type="checkbox" data-f="rec"'+(rc?' checked':'')+'> Recorrente <span class="s">('+(isD?'lança todo mês':'entra todo mês')+')</span></label>';
@@ -1036,8 +1039,8 @@ function receitasCard(){
   var h='<div class="card"><div class="ttl">Receitas · categorias</div>';
   S.cats.forEach(function(c){if(c.tipo!=='r')return;
     var subs=c.subs.map(function(x){return esc(x.nome)}).join(', ');
-    h+=simpleRow(c.icon,c.cor,c.nome,(vp[c.id]?'+ '+money(vp[c.id])+' previsto · ':'')+subs,money(v[c.id]||0),v[c.id]?'pos':'','data-act="e1" data-id="'+c.id+'" aria-label="Editar a categoria de receita '+esc(c.nome)+'"')});
-  h+='<div class="row sp s" style="margin-top:8px"><span>Recebido em '+esc(ymShort(cur))+(totP?' (+ '+money(totP)+' previsto)':'')+'</span><b>'+money(tot)+'</b></div>'+
+    h+=simpleRow(c.icon,c.cor,c.nome,vp[c.id]?'+ '+money(vp[c.id])+' previsto':subs,money(v[c.id]||0),v[c.id]?'pos':'','data-act="e1" data-id="'+c.id+'" aria-label="Editar a categoria de receita '+esc(c.nome)+'"')});
+  h+='<div class="row sp s" style="margin-top:8px"><span>Recebido em '+esc(ymShort(cur))+'</span><b>'+money(tot)+'</b></div>'+(totP?'<div class="row sp s"><span>A receber</span><b>'+money(totP)+'</b></div>':'')+
     '<div class="note">A receita do mês é a base da regra 50/30/20. Toque numa categoria para editar as subcategorias ou marcar como recorrente (salário, por exemplo).</div>'+
     '<button type="button" class="btn newg" data-act="addcatr">+ Nova categoria de receita</button></div>';
   return h;
@@ -1124,7 +1127,7 @@ function renderBudget(){
     h+='<div class="seg">'+[['tetos','Tetos e regra'],['analise','Análise']].map(function(v){return'<button type="button" data-bv="'+v[0]+'" class="'+(bView===v[0]?'on':'')+'">'+v[1]+'</button>'}).join('')+'</div>';
     h+=bView==='tetos'?orcHTML()+'<button type="button" class="btn ghost" data-act="bedit">Editar categorias e tetos</button>':dashHTML();
   }
-  $('#view-budget').innerHTML=h;chipsAtivo($('#view-budget'));
+  $('#view-budget').innerHTML=h;chipsAtivo($('#view-budget'));$('#view-budget').querySelectorAll('textarea').forEach(autoAlt);
 }
 /* trava da regra no planejamento: se os tetos de Necessidades ou Desejos passam do limite, oferece ajustar este teto */
 function checarTetoRegra(c,s,campo){
@@ -1145,6 +1148,7 @@ var vb=$('#view-budget');
 vb.addEventListener('input',function(e){
   var t=e.target,v,box=t.closest('.scat');if(!box)return;
   var c=S.cats[Number(box.dataset.c)],sb=t.closest('.ssub'),s=sb?c.subs[Number(sb.dataset.s)]:null,f=t.dataset.f;
+  if(t.tagName==='TEXTAREA'){if(/\n/.test(t.value))t.value=t.value.replace(/\s*\n\s*/g,' ');autoAlt(t)}
   if(f==='cnome'){c.nome=t.value.trim()||'Categoria'}
   else if(f==='snome'&&s){s.nome=t.value.trim()||'Subcategoria'}
   else if(f==='base'&&s){v=parseNum(t.value);setBase(s,cur,isNaN(v)||v<0?0:v)}
@@ -1152,6 +1156,8 @@ vb.addEventListener('input',function(e){
   else return;
   save();updCatBox(box,c);
 });
+/* nomes em campo de várias linhas: Enter só confirma (não quebra linha) */
+vb.addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.tagName==='TEXTAREA'){e.preventDefault();e.target.blur()}});
 vb.addEventListener('change',function(e){
   var t=e.target;
   if(t.id==='dScope'){dSc=t.value;dSel=null;renderBudget();return}
