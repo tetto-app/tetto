@@ -702,7 +702,7 @@ function dialog(title,msg,btns,cb){
   $('#dlgT').textContent=title;$('#dlgM').textContent=msg||'';$('#dlgM').hidden=!msg;
   $('#dlgB').innerHTML=btns.map(function(b,i){return'<button type="button" class="btn '+(b.cls||'ghost')+'" data-i="'+i+'">'+esc(b.t)+'</button>'}).join('');
   dlgCb=function(i){dlgCb=null;$('#dlg').classList.remove('on');var b=btns[i];if(cb&&b&&b.v!==undefined)cb(b.v)};
-  $('#dlg').classList.add('on');
+  $('#dlg').classList.add('on');syncVoltar();
 }
 $('#dlgB').addEventListener('click',function(e){var b=e.target.closest('[data-i]');if(b&&dlgCb)dlgCb(Number(b.dataset.i))});
 $('#dlg').addEventListener('click',function(e){if(e.target.id==='dlg'&&dlgCb)dlgCb(-1)});
@@ -1034,14 +1034,22 @@ var bGrp='all';
 /* categorias de receita à vista no Orçamento (antes só apareciam dentro de "Editar categorias e tetos"):
    quanto entrou em cada uma no mês, tocar abre a categoria para editar, e o botão cria uma nova */
 function receitasCard(){
-  var v={},vp={},tot=0,totP=0;
-  S.lanc.forEach(function(l){if(l.tipo!=='r'||mesOrc(l)!==cur)return;if(isReal(l)){v[l.cat]=(v[l.cat]||0)+l.valor;tot+=l.valor}else{vp[l.cat]=(vp[l.cat]||0)+l.valor;totP+=l.valor}});
+  var v={},vp={},sv={},svp={},tot=0,totP=0;
+  S.lanc.forEach(function(l){if(l.tipo!=='r'||mesOrc(l)!==cur)return;if(isReal(l)){v[l.cat]=(v[l.cat]||0)+l.valor;sv[l.sub]=(sv[l.sub]||0)+l.valor;tot+=l.valor}else{vp[l.cat]=(vp[l.cat]||0)+l.valor;svp[l.sub]=(svp[l.sub]||0)+l.valor;totP+=l.valor}});
   var h='<div class="card"><div class="ttl">Receitas · categorias</div>';
-  S.cats.forEach(function(c){if(c.tipo!=='r')return;
-    var subs=c.subs.map(function(x){return esc(x.nome)}).join(', ');
-    h+=simpleRow(c.icon,c.cor,c.nome,vp[c.id]?'+ '+money(vp[c.id])+' previsto':subs,money(v[c.id]||0),v[c.id]?'pos':'','data-act="e1" data-id="'+c.id+'" aria-label="Editar a categoria de receita '+esc(c.nome)+'"')});
+  /* igual às partes da regra: tocar na categoria abre as subcategorias, com o botão de editar dentro */
+  S.cats.forEach(function(c){if(c.tipo!=='r')return;var open=!!openCats[c.id],r=v[c.id]||0,p=vp[c.id]||0;
+    h+='<div class="catrow'+(open?' open':'')+'"><button type="button" class="cathead" data-act="tgc" data-id="'+c.id+'" aria-expanded="'+open+'"><span class="ico" style="--cc:'+c.cor+'">'+esc(c.icon)+'</span><span class="t"><div class="n">'+esc(c.nome)+'</div><div class="s">'+(p?'+ '+money(p)+' a receber':c.subs.length+(c.subs.length===1?' subcategoria':' subcategorias'))+'</div></span>'+
+      '<span class="r"><div class="v sm'+(r?' pos':'')+'">'+money(r)+'</div><div class="s">recebido</div></span>'+CHEV+'</button>';
+    if(open){
+      c.subs.forEach(function(sb){var a1=sv[sb.id]||0,p1=svp[sb.id]||0;
+        h+='<div class="subrow"><div class="row sp"><span class="n2">'+esc(sb.nome)+(sb.modo!=='teto'?'<span class="pill">recorrente</span>':'')+'</span><b class="'+(a1?'pos':'')+'">'+money(a1)+'</b></div>'+
+          (p1?'<div class="s">+ '+money(p1)+' a receber</div>':'')+'</div>'});
+      h+='<button type="button" class="btn ghost sm" data-act="e1" data-id="'+c.id+'" style="margin-top:8px">✎ Editar '+esc(c.nome)+'</button>';
+    }
+    h+='</div>'});
   h+='<div class="row sp s" style="margin-top:8px"><span>Recebido em '+esc(ymShort(cur))+'</span><b>'+money(tot)+'</b></div>'+(totP?'<div class="row sp s"><span>A receber</span><b>'+money(totP)+'</b></div>':'')+
-    '<div class="note">A receita do mês é a base da regra 50/30/20. Toque numa categoria para editar as subcategorias ou marcar como recorrente (salário, por exemplo).</div>'+
+    '<div class="note">A receita do mês é a base da regra 50/30/20. Toque numa categoria para ver as subcategorias e editar (marcar como recorrente o salário, por exemplo).</div>'+
     '<button type="button" class="btn newg" data-act="addcatr">+ Nova categoria de receita</button></div>';
   return h;
 }
@@ -1598,7 +1606,22 @@ function hideSheet(){
   if(eraM)render();
 }
 function closeSheet(){if(history.state&&history.state.sheet)history.back();else hideSheet()}
-window.addEventListener('popstate',hideSheet);
+/* botão Voltar do celular (como no Mobills): fecha o que estiver aberto, um nível por vez,
+   e só sai do app quando já está no Início sem nada aberto.
+   Ordem: aviso → janela de baixo (lançamento, menu +, contas, ícones) → modo de edição → aba → Início */
+function sheetAberta(){return['#sheet','#picker','#acts','#msheet'].some(function(x){return $(x).classList.contains('on')})}
+function emEdicao(){return bEdit||hEdit||kEdit||mEdit}
+function precisaVoltar(){return tab!=='home'||emEdicao()||$('#dlg').classList.contains('on')}
+/* deixa uma "página" no histórico enquanto houver para onde voltar dentro do app */
+function syncVoltar(){var st=history.state||{};if(precisaVoltar()&&!st.g&&!st.sheet)history.pushState({g:1},'')}
+/* depois de cada toque (abrir edição, trocar de aba...), confere se precisa da página de voltar */
+document.addEventListener('click',function(){setTimeout(syncVoltar,0)});
+window.addEventListener('popstate',function(){
+  if($('#dlg').classList.contains('on')){if(dlgCb)dlgCb(-1);else $('#dlg').classList.remove('on');if(sheetAberta())history.pushState({sheet:1},'');else syncVoltar();return}
+  if(sheetAberta()){hideSheet();return}
+  if(emEdicao()){bEdit=false;bOne=null;hEdit=false;kEdit=false;mEdit=false;$('#fab').hidden=false;render();window.scrollTo(0,0);return}
+  if(tab!=='home'){setTab('home');window.scrollTo(0,0);return}
+});
 $('#fab').addEventListener('click',function(){preRep=false;$('#actsTitle').textContent='O que você quer lançar?';$('#acts').classList.add('on');$('#backdrop').classList.add('on');history.pushState({sheet:1},'')});
 $('#acts').addEventListener('click',function(e){
   var b=e.target.closest('[data-m]');if(!b)return;var m=b.dataset.m;
@@ -1700,6 +1723,7 @@ document.querySelectorAll('nav button').forEach(function(b){b.addEventListener('
 function render(){
   renderHeader();
   if(tab==='home')renderHome();else if(tab==='list')renderList();else if(tab==='cards')renderCards();else if(tab==='budget')renderBudget();else renderMore();
+  syncVoltar();
 }
 
 /* ao voltar para o app em outro dia/mês, atualiza o "hoje" e o mês atual */
