@@ -341,7 +341,8 @@ $('#mMes').addEventListener('click',function(){mode='mes';render()});
 $('#mHoje').addEventListener('click',function(){mode='hoje';render()});
 /* deslizar o dedo para os lados troca o mês */
 ['#view-home','#view-list','#view-budget'].forEach(function(sel){var x0=null,y0=0,el=$(sel);
-  el.addEventListener('touchstart',function(e){if(e.touches.length>1){x0=null;return}x0=e.touches[0].clientX;y0=e.touches[0].clientY},{passive:true});
+  /* arrastar numa fileira que rola para o lado (filtros) não troca o mês */
+  el.addEventListener('touchstart',function(e){if(e.touches.length>1||e.target.closest('.chips.scroll')){x0=null;return}x0=e.touches[0].clientX;y0=e.touches[0].clientY},{passive:true});
   el.addEventListener('touchend',function(e){if(x0==null||bEdit)return;var dx=e.changedTouches[0].clientX-x0,dy=e.changedTouches[0].clientY-y0;x0=null;
     if(Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.5)goMonth(dx<0?1:-1)},{passive:true});
 });
@@ -1008,7 +1009,7 @@ function regraHTML(){
 var bGrp='all';
 function orcHTML(){
   var a=agg(cur),R=S.config.rule,rec=a.rec+a.recP,h='',dc=S.cats.filter(function(c){return c.tipo==='d'});
-  h+='<div class="chips scroll" style="margin-top:4px">'+[['all','Tudo'],['n','🏠 Necessidades'],['d','🎉 Desejos'],['p','📈 Poupança']].map(function(f){return'<button type="button" class="chip'+(bGrp===f[0]?' on':'')+'" data-bg="'+f[0]+'">'+f[1]+'</button>'}).join('')+'</div>';
+  h+='<div class="chips scroll" style="margin-top:4px">'+[['all','Tudo'],['n','Necessidades'],['d','Desejos'],['p','Poupança']].map(function(f){return'<button type="button" class="chip'+(bGrp===f[0]?' on':'')+'" data-bg="'+f[0]+'">'+f[1]+'</button>'}).join('')+'</div>';
   var capT=dc.reduce(function(x,c){return x+catCap(c,cur)},0),gastoT=a.desp+a.despP,remT=capT-gastoT,pT=pct(gastoT,capT);
   if(bGrp==='all')h+='<div class="card"><div class="ttl">Tetos de '+esc(ymLabel(cur).toLowerCase())+'</div>'+
     '<div class="row sp"><span class="l">Gasto</span><b>'+money(gastoT)+' <span class="s">de '+money(capT)+'</span></b></div>'+barP(bar2(pct(a.desp,capT),pct(a.despP,capT),st(pT)),pT)+

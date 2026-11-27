@@ -77,7 +77,9 @@ main{padding:0 16px 76px}
 .empty{color:var(--muted);font-size:14px;padding:6px 0}
 .grp{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;margin:4px 0 2px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chips.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips.scroll{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;gap:4px}
+/* filtros mais compactos, para caberem na largura do celular sem precisar rolar */
+.chips.scroll .chip{padding:6px 9px;font-size:14px;min-height:40px}
 .chips.scroll::-webkit-scrollbar{display:none}
 .chip{flex:0 0 auto;min-height:44px;padding:8px 14px;border-radius:99px;border:1px solid var(--line);background:var(--card2);color:var(--text);font:inherit;font-size:15px}
 .chip.on{background:var(--cc,var(--accent));border-color:var(--cc,var(--accent));color:#0b0d12;font-weight:600}
