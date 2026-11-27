@@ -89,6 +89,7 @@ function clean(d){
     if(typeof k.icon==='string'&&k.icon&&k.icon.length<=8)kc.icon=k.icon;
     if(okNum(k.limite))kc.limite=k.limite;
     if(Number.isInteger(k.fecha)&&k.fecha>=1&&k.fecha<=31)kc.fecha=k.fecha;
+    if(typeof k.devFat==='string'&&/^\d{4}-(0[1-9]|1[0-2])$/.test(k.devFat))kc.devFat=k.devFat;
     if(Number.isInteger(k.vence)&&k.vence>=1&&k.vence<=31)kc.vence=k.vence;
     contas.push(kc);}
   for(i=0;i<d.cats.length;i++){var ct=d.cats[i];
@@ -139,6 +140,7 @@ function clean(d){
 }
 function load(){try{var s=clean(JSON.parse(localStorage.getItem(KEY)));if(s)return s}catch(e){}return defaults()}
 var S=load();
+(function(){var mud=false;S.contas.forEach(function(c){if(c.tipo==='cartao'&&c.saldoIni<0&&!c.devFat){c.devFat=cicloDe(c,todayISO());mud=true}});if(mud)save()})();
 /* gera os lançamentos das recorrências até 12 meses à frente (sem recriar meses excluídos) */
 var REC_AHEAD=12;
 function ensureRecs(){
@@ -250,9 +252,11 @@ function capScope(sc,ym){
 function fechaDia(c,ym){return Math.min(c.fecha,daysIn(ym))}
 function cicloDe(c,date){var ym=date.slice(0,7);if(!c.fecha)return ym;return +date.slice(8)<=fechaDia(c,ym)?ym:ymAdd(ym,1)}
 function vencYM(c,closeYM){return(c.fecha&&c.vence&&c.vence<=c.fecha)?ymAdd(closeYM,1):closeYM}
-function faturaTotal(c,closeYM){return S.lanc.reduce(function(t,l){return l.tipo==='d'&&l.conta===c.id&&cicloDe(c,l.data)===closeYM?t+l.valor:t},0)}
+/* "Já devia ao começar": entra como saldo anterior na fatura que estava aberta quando foi informado */
+function devFatura(c,closeYM){var d=Math.max(0,-(c.saldoIni||0));return d>0&&closeYM===(c.devFat||cicloDe(c,todayISO()))?d:0}
+function faturaTotal(c,closeYM){return devFatura(c,closeYM)+S.lanc.reduce(function(t,l){return l.tipo==='d'&&l.conta===c.id&&cicloDe(c,l.data)===closeYM?t+l.valor:t},0)}
 /* fatura separada em já gasto (até hoje) e programado (parcelas com data futura) */
-function faturaPartes(c,closeYM){var h=todayISO(),g=0,p=0;S.lanc.forEach(function(l){if(l.tipo==='d'&&l.conta===c.id&&cicloDe(c,l.data)===closeYM){if(l.data<=h)g+=l.valor;else p+=l.valor}});return{g:g,p:p,t:g+p}}
+function faturaPartes(c,closeYM){var h=todayISO(),g=devFatura(c,closeYM),p=0;S.lanc.forEach(function(l){if(l.tipo==='d'&&l.conta===c.id&&cicloDe(c,l.data)===closeYM){if(l.data<=h)g+=l.valor;else p+=l.valor}});return{g:g,p:p,t:g+p}}
 function parcelasFuturas(c){var h=todayISO();return S.lanc.reduce(function(t,l){return l.tipo==='d'&&l.conta===c.id&&l.pt>1&&l.data>h?t+l.valor:t},0)}
 /* mês de fechamento da fatura que vence no mês informado */
 function fechaDoVenc(c,ym){return(c.fecha&&c.vence&&c.vence<=c.fecha)?ymAdd(ym,-1):ym}
@@ -262,11 +266,11 @@ function fechaDoVenc(c,ym){return(c.fecha&&c.vence&&c.vence<=c.fecha)?ymAdd(ym,-
 function pagosFatura(c,semId){
   var pago=0,hj=todayISO(),tot={},res={},esc0=[];
   S.lanc.forEach(function(l){if(l.tipo==='d'&&l.conta===c.id){var y=cicloDe(c,l.data);tot[y]=(tot[y]||0)+l.valor}});
+  var dv=Math.max(0,-(c.saldoIni||0));if(dv>0){var yd=c.devFat||cicloDe(c,hj);tot[yd]=(tot[yd]||0)+dv}
   S.lanc.forEach(function(l){if(l.tipo!=='t'||l.para!==c.id||!isReal(l)||l.id===semId)return;
     if(l.fat)esc0.push(l);else pago+=l.valor});
   /* pagamento com fatura escolhida vai para ela; o que passar do total volta para a fila */
   esc0.forEach(function(l){var y=l.fat,falta=Math.max(0,(tot[y]||0)-(res[y]||0)),v=Math.min(l.valor,falta);res[y]=(res[y]||0)+v;pago+=l.valor-v});
-  pago-=Math.max(0,-c.saldoIni);if(pago<0)pago=0;
   var at=cicloDe(c,hj);
   Object.keys(tot).sort().forEach(function(y){if(y>at)return;var v=Math.min(pago,tot[y]-(res[y]||0));res[y]=(res[y]||0)+v;pago-=v});
   res._sobra=Math.round(pago*100)/100;return res;
@@ -719,7 +723,7 @@ function contaInput(e){
   var t=e.target,box=t.closest('[data-k]');if(!box)return;var c=S.contas[Number(box.dataset.k)],v,f=t.dataset.f;
   if(f==='knome')c.nome=t.value.trim()||'Conta';
   else if(f==='kini'){v=parseNum(t.value);c.saldoIni=isNaN(v)?0:v}
-  else if(f==='kdev'){v=parseNum(t.value);c.saldoIni=isNaN(v)?0:-Math.abs(v)}
+  else if(f==='kdev'){v=parseNum(t.value);c.saldoIni=isNaN(v)?0:-Math.abs(v);if(c.saldoIni<0){if(!c.devFat)c.devFat=cicloDe(c,todayISO())}else delete c.devFat}
   else if(f==='klim'){v=parseNum(t.value);if(isNaN(v)||v<=0)delete c.limite;else c.limite=v}
   else if(f==='kfec'||f==='kven'){v=parseInt(t.value,10);var k=f==='kfec'?'fecha':'vence';if(v>=1&&v<=31)c[k]=v;else delete c[k]}
   else return;
@@ -760,6 +764,7 @@ function cardTop(c){
   var fy=fechaDoVenc(c,cur),fa=faturaPartes(c,fy),sit=situacaoFatura(c,fy),d=datasFatura(c,fy),ps=pagosFatura(c),h='';
   h+='<div class="hl"><div class="row sp"><span>'+cap1(faturaNome(c,fy))+'</span><b class="'+sit.cls+'" style="font-size:14px">'+cap1(sit.txt.split(' · ')[0])+'</b></div>'+
     '<div class="v" style="margin-top:6px">'+money(fa.t)+'</div>'+
+    (devFatura(c,fy)>0?'<div class="s">inclui '+money(devFatura(c,fy))+' que já devia ao começar</div>':'')+
     (fa.p>0?'<div class="s">inclui '+money(fa.p)+' programado (parcelas e compras futuras)</div>':'')+
     (sit.txt.indexOf('pago ')>=0?'<div class="s">'+sit.txt.slice(sit.txt.indexOf('pago ')).replace(/^p/,'P')+'</div>':'')+
     '<div class="grid2" style="margin-top:10px"><div><div class="l">Fechamento</div><div class="v sm">'+dShort(d.fe)+'</div></div><div><div class="l">Vencimento</div><div class="v sm">'+dShort(d.ve)+'</div></div></div>'+
